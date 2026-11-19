@@ -49,3 +49,59 @@ results |>
 
 The probability that at least two people share a same birthday increase as the group size becomes larger. The probability is approximately 1 when the group size reaches 50.
 
+
+## Problem 2
+```{r}
+files = tibble(
+  file = list.files("data", pattern = "\\.csv$", full.names = TRUE)
+)
+
+files
+```
+
+```{r}
+files = files |>
+  mutate(
+    data = map(file, read_csv, show_col_types = FALSE)
+  )
+
+files
+```
+
+```{r}
+study_data = files |>
+  unnest(data) |>
+  mutate(
+    arm = if_else(str_detect(file, "con_"), "control", "experimental"),
+    id = str_extract(file, "\\d+")
+  ) |>
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week",
+    values_to = "value"
+  ) |>
+  mutate(
+    week = as.numeric(str_remove(week, "week_"))
+  ) |>
+  select(id, arm, week, value)
+
+study_data
+```
+
+```{r}
+study_data |>
+  ggplot(aes(x = week, y = value,
+             group = interaction(arm, id),
+             color = arm)) +
+  geom_line() +
+  labs(
+    title = "Observations Over Time by Treatment Group",
+    x = "Week",
+    y = "Observation",
+    color = "Group"
+  ) +
+  theme_minimal()
+```
+
+The observations from experimental group generally increased over time. The observations from control group generally remained stable. After week 7, all the observations in experimental group were higher than those in the control group.
+
