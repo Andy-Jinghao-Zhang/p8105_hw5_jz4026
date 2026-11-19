@@ -4,7 +4,7 @@ author: "Jinghao Zhang"
 output: github_document
 ---
 
-```{r}
+```{r setup, message=FALSE}
 library(tidyverse)
 ```
 
@@ -31,8 +31,6 @@ results =
   summarize(
     prob = mean(same)
   )
-
-results
 ```
 
 ```{r}
@@ -55,8 +53,6 @@ The probability that at least two people share a same birthday increase as the g
 files = tibble(
   file = list.files("data", pattern = "\\.csv$", full.names = TRUE)
 )
-
-files
 ```
 
 ```{r}
@@ -64,8 +60,6 @@ files = files |>
   mutate(
     data = map(file, read_csv, show_col_types = FALSE)
   )
-
-files
 ```
 
 ```{r}
@@ -105,3 +99,81 @@ study_data |>
 
 The observations from experimental group generally increased over time. The observations from control group generally remained stable. After week 7, all the observations in experimental group were higher than those in the control group.
 
+
+## Problem 3
+```{r}
+set.seed(1)
+
+sim_test = function(mu) {
+  x = rnorm(30, mean = mu, sd = 5)
+  t.test(x, mu = 0) |>
+    broom::tidy() |>
+    select(estimate, p.value)
+}
+```
+
+```{r}
+results3 =
+  expand_grid(
+    mu = 0:6,
+    iter = 1:5000
+  ) |>
+  mutate(
+    test = map(mu, sim_test)
+  ) |>
+  unnest(test)
+```
+
+```{r}
+power_data = results3 |>
+  group_by(mu) |>
+  summarize(
+    power = mean(p.value < 0.05)
+  )
+
+power_data
+
+power_data |>
+  ggplot(aes(x = mu, y = power)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue") +
+  labs(
+    title = "Power vs. True Mean",
+    x = "True Mean",
+    y = "Power"
+  ) +
+  theme_minimal()
+```
+
+The power increases as the true mean increases. This implies that larger effect sizes are easier to detect.
+
+```{r}
+mean_data = results3 |>
+  group_by(mu) |>
+  summarize(
+    mean_all = mean(estimate),
+    mean_reject = mean(estimate[p.value < 0.05])
+  )
+
+mean_data
+
+mean_data |>
+  pivot_longer(
+    mean_all:mean_reject,
+    names_to = "type",
+    values_to = "mean"
+  ) |>
+  ggplot(aes(x = mu, y = mean, color = type)) +
+  geom_line() +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  labs(
+    title = "Average Estimate vs. True Mean",
+    x = "True Mean",
+    y = "Average Estimate",
+    color = "Estimate"
+  ) +
+  theme_minimal()
+```
+
+The average estimate of mean of all samples generally equal to the true mean. However, the average estimate of mean only in samples for which the null was rejected is higher than the true mean at small values of true mean. This is because larger estimates are more likely to have significant results.
