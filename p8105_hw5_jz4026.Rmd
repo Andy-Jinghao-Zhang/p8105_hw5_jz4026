@@ -1,0 +1,51 @@
+---
+title: "P8105 Homework 5"
+author: "Jinghao Zhang"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+## Problem 1
+```{r}
+set.seed(1)
+
+birthday = function(n) {
+  days = sample(1:365, n, replace = TRUE)
+  any(duplicated(days))
+}
+```
+
+```{r}
+results =
+  expand_grid(
+    n = 2:50,
+    iter = 1:10000
+  ) |>
+  mutate(
+    same = map_lgl(n, birthday)
+  ) |>
+  group_by(n) |>
+  summarize(
+    prob = mean(same)
+  )
+
+results
+```
+
+```{r}
+results |>
+  ggplot(aes(x = n, y = prob)) +
+  geom_line(color = "blue") +
+  labs(
+    title = "Probability of Shared Birthdays",
+    x = "Group Size",
+    y = "Probability"
+  ) +
+  theme_minimal()
+```
+
+The probability that at least two people share a same birthday increase as the group size becomes larger. The probability is approximately 1 when the group size reaches 50.
+
